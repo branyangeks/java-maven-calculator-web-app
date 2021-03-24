@@ -1,5 +1,9 @@
 pipeline {
     agent any
+    tools {
+        maven 'M3'
+        docker 'docker' 
+    }
     stages {
         stage('Checkout Code') { 
             steps {
@@ -40,6 +44,20 @@ pipeline {
                 bat(/"${mvnHome}\bin\mvn" verify/)
             }
         }
+        stage('Docker Build') {
+            steps{
+                sh 'docker build -t dockerregistry.io/calculatorapp/calculator:${BUILD_NUMBER} -t dockerregistry.io/calculatorapp/calculator:latest .'
+            }        
+        }
+        stage('Docker Push') {
+            steps{
+            withDockerRegistry(credentialsId: 'docker_demo', toolName: 'docker', url: 'dockerhub.io') {
+                    sh 'docker push dockerregistry.io/calculatorapp/calculator'
+                }
+            }
+
+        }
+
         stage('Deploy') {
             timeout(time: 10, unit: 'MINUTES') {
                 input message: 'Deploy this web app to production ?'
